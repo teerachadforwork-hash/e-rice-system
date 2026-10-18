@@ -1,0 +1,89 @@
+import React, { useState } from 'react';
+import { useReceipts } from '../../services/ReceiptService';
+import ReceiptTable from '../../components/receipts/ReceiptTable';
+import ReceiptForm from '../../components/receipts/ReceiptForm';
+import QRScanner from '../../components/receipts/QRScanner';
+import WeightMeasurement from '../../components/receipts/WeightMeasurement';
+import Modal from '../../components/common/Modal';
+import Button from '../../components/common/Button';
+import { toast } from 'react-hot-toast';
+
+const ReceiptsPage = () => {
+  const { receipts, loading, error, createReceipt, updateReceipt } = useReceipts();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [currentReceipt, setCurrentReceipt] = useState(null);
+
+  const handleCreateReceipt = async (receiptData) => {
+    try {
+      await createReceipt(receiptData);
+      toast.success('บันทึกการรับข้าวเรียบร้อยแล้ว');
+      setIsFormOpen(false);
+    } catch (err) {
+      toast.error('เกิดข้อผิดพลาด: ' + err.message);
+    }
+  };
+
+  const handleQRScan = (qrData) => {
+    // Process QR data and populate form
+    setCurrentReceipt(qrData);
+    setIsScannerOpen(false);
+    setIsFormOpen(true);
+  };
+
+  return (
+    <div className="p-6 fade-in">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-primary-brown">ระบบรับข้าวเข้า</h2>
+        <div className="space-x-3">
+          <Button onClick={() => setIsScannerOpen(true)} className="btn-secondary">
+            <i className="fas fa-qrcode mr-2"></i> สแกน QR Code
+          </Button>
+          <Button onClick={() => {
+            setCurrentReceipt(null);
+            setIsFormOpen(true);
+          }} className="btn-primary">
+            <i className="fas fa-plus mr-2"></i> เพิ่มการรับข้าว
+          </Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div>Loading...</div>
+      ) : error ? (
+        <div className="text-red-500">Error: {error}</div>
+      ) : (
+        <ReceiptTable 
+          receipts={receipts}
+          onEdit={(receipt) => {
+            setCurrentReceipt(receipt);
+            setIsFormOpen(true);
+          }}
+        />
+      )}
+
+      <Modal
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        title={currentReceipt ? 'แก้ไขการรับข้าว' : 'เพิ่มการรับข้าวใหม่'}
+        size="xl"
+      >
+        <ReceiptForm 
+          initialData={currentReceipt}
+          onSubmit={handleCreateReceipt}
+          onCancel={() => setIsFormOpen(false)}
+        />
+      </Modal>
+
+      <Modal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        title="สแกน QR Code รถบรรทุก"
+      >
+        <QRScanner onScan={handleQRScan} />
+      </Modal>
+    </div>
+  );
+};
+
+export default ReceiptsPage;

@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-green: #4CAF50;
+  --primary-brown: #8D6E63;
+  --primary-yellow: #FFC107;
+  --primary-cream: #FFFEF7;
+  --secondary-orange: #FF9800;
+  --secondary-red: #F44336;
+  --secondary-blue: #2196F3;
+  --secondary-gray: #9E9E9E;
+}
+
+body {
+  font-family: 'Prompt', sans-serif;
+  background-color: var(--primary-cream);
+  color: #333;
+}
+
+/* Custom components */
+.btn-primary {
+  @apply bg-primary-green hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+}
+
+.btn-secondary {
+  @apply bg-primary-brown hover:bg-brown-700 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+}
+
+.card {
+  @apply bg-white rounded-lg shadow-md p-6;
+}
+
+.input-field {
+  @apply w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-green;
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}

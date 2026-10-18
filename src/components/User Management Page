@@ -1,0 +1,85 @@
+import React, { useState } from 'react';
+import { useUsers } from '../../services/UserService';
+import UserTable from '../../components/users/UserTable';
+import UserForm from '../../components/users/UserForm';
+import Modal from '../../components/common/Modal';
+import Button from '../../components/common/Button';
+import { toast } from 'react-hot-toast';
+
+const UsersPage = () => {
+  const { users, loading, error, addUser, updateUser, deleteUser } = useUsers();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  const handleSubmit = async (userData) => {
+    try {
+      if (currentUser) {
+        await updateUser(currentUser.userId, userData);
+        toast.success('อัพเดทข้อมูลผู้ใช้เรียบร้อยแล้ว');
+      } else {
+        await addUser(userData);
+        toast.success('เพิ่มผู้ใช้ใหม่เรียบร้อยแล้ว');
+      }
+      setIsFormOpen(false);
+    } catch (err) {
+      toast.error('เกิดข้อผิดพลาด: ' + err.message);
+    }
+  };
+
+  const handleDelete = async (userId) => {
+    if (window.confirm('คุณแน่ใจว่าต้องการลบผู้ใช้นี้?')) {
+      try {
+        await deleteUser(userId);
+        toast.success('ลบผู้ใช้เรียบร้อยแล้ว');
+      } catch (err) {
+        toast.error('เกิดข้อผิดพลาด: ' + err.message);
+      }
+    }
+  };
+
+  return (
+    <div className="p-6 fade-in">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-primary-brown">จัดการผู้ใช้งานระบบ</h2>
+        <Button 
+          onClick={() => {
+            setCurrentUser(null);
+            setIsFormOpen(true);
+          }} 
+          className="btn-primary"
+        >
+          <i className="fas fa-plus mr-2"></i> เพิ่มผู้ใช้
+        </Button>
+      </div>
+
+      {loading ? (
+        <div>Loading...</div>
+      ) : error ? (
+        <div className="text-red-500">Error: {error}</div>
+      ) : (
+        <UserTable 
+          users={users}
+          onEdit={(user) => {
+            setCurrentUser(user);
+            setIsFormOpen(true);
+          }}
+          onDelete={handleDelete}
+        />
+      )}
+
+      <Modal
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        title={currentUser ? 'แก้ไขข้อมูลผู้ใช้' : 'เพิ่มผู้ใช้ใหม่'}
+      >
+        <UserForm 
+          initialData={currentUser}
+          onSubmit={handleSubmit}
+          onCancel={() => setIsFormOpen(false)}
+        />
+      </Modal>
+    </div>
+  );
+};
+
+export default UsersPage;

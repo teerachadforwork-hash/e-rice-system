@@ -1,0 +1,103 @@
+import React, { useState, useEffect } from 'react';
+import { useFarmers } from '../../services/FarmerService';
+import FarmerTable from './FarmerTable';
+import FarmerForm from './FarmerForm';
+import SearchFilter from '../common/SearchFilter';
+import Modal from '../common/Modal';
+import Button from '../common/Button';
+import LoadingSpinner from '../common/LoadingSpinner';
+import { toast } from 'react-hot-toast';
+
+const FarmerManagement = () => {
+  const { farmers, loading, error, addFarmer, updateFarmer, deleteFarmer } = useFarmers();
+  const [filteredFarmers, setFilteredFarmers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentFarmer, setCurrentFarmer] = useState(null);
+
+  useEffect(() => {
+    if (farmers) {
+      const filtered = farmers.filter(farmer =>
+        farmer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        farmer.farmerId.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredFarmers(filtered);
+    }
+  }, [searchTerm, farmers]);
+
+  const handleAddFarmer = () => {
+    setCurrentFarmer(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditFarmer = (farmer) => {
+    setCurrentFarmer(farmer);
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (farmerData) => {
+    try {
+      if (currentFarmer) {
+        await updateFarmer(currentFarmer.farmerId, farmerData);
+        toast.success('อัพเดทข้อมูลเกษตรกรเรียบร้อยแล้ว');
+      } else {
+        await addFarmer(farmerData);
+        toast.success('เพิ่มเกษตรกรใหม่เรียบร้อยแล้ว');
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      toast.error('เกิดข้อผิดพลาด: ' + err.message);
+    }
+  };
+
+  const handleDelete = async (farmerId) => {
+    if (window.confirm('คุณแน่ใจว่าต้องการลบเกษตรกรนี้?')) {
+      try {
+        await deleteFarmer(farmerId);
+        toast.success('ลบเกษตรกรเรียบร้อยแล้ว');
+      } catch (err) {
+        toast.error('เกิดข้อผิดพลาด: ' + err.message);
+      }
+    }
+  };
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <div className="text-red-500">Error: {error}</div>;
+
+  return (
+    <div className="p-6 fade-in">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-primary-brown">จัดการข้อมูลเกษตรกร</h2>
+        <Button onClick={handleAddFarmer} className="btn-primary">
+          <i className="fas fa-plus mr-2"></i>เพิ่มเกษตรกร
+        </Button>
+      </div>
+
+      <SearchFilter 
+        placeholder="ค้นหาด้วยชื่อหรือรหัสเกษตรกร..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+
+      <FarmerTable 
+        farmers={filteredFarmers} 
+        onEdit={handleEditFarmer}
+        onDelete={handleDelete}
+      />
+
+      <Modal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={currentFarmer ? 'แก้ไขข้อมูลเกษตรกร' : 'เพิ่มเกษตรกรใหม่'}
+      >
+        <FarmerForm 
+          initialData={currentFarmer}
+          onSubmit={handleSubmit}
+          onCancel={() => setIsModalOpen(false)}
+        />
+      </Modal>
+    </div>
+  );
+};
+
+export default FarmerManagement;

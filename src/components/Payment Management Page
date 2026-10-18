@@ -1,0 +1,111 @@
+import React, { useState } from 'react';
+import { usePayments, useReceipts } from '../../services/PaymentService';
+import PaymentTable from '../../components/payments/PaymentTable';
+import PaymentForm from '../../components/payments/PaymentForm';
+import ReceiptModal from '../../components/payments/ReceiptModal';
+import Modal from '../../components/common/Modal';
+import Button from '../../components/common/Button';
+import { toast } from 'react-hot-toast';
+
+const PaymentsPage = () => {
+  const { payments, loading, error, createPayment, updatePayment } = usePayments();
+  const { receipts } = useReceipts();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [currentPayment, setCurrentPayment] = useState(null);
+  const [selectedReceipt, setSelectedReceipt] = useState(null);
+
+  const handleSubmit = async (paymentData) => {
+    try {
+      if (currentPayment) {
+        await updatePayment(currentPayment.paymentId, paymentData);
+        toast.success('อัพเดทการชำระเงินเรียบร้อยแล้ว');
+      } else {
+        await createPayment(paymentData);
+        toast.success('บันทึกการชำระเงินเรียบร้อยแล้ว');
+      }
+      setIsFormOpen(false);
+    } catch (err) {
+      toast.error('เกิดข้อผิดพลาด: ' + err.message);
+    }
+  };
+
+  const handleCreateForReceipt = (receipt) => {
+    setSelectedReceipt(receipt);
+    setCurrentPayment(null);
+    setIsFormOpen(true);
+  };
+
+  return (
+    <div className="p-6 fade-in">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-primary-brown">ระบบการชำระเงิน</h2>
+        <div className="space-x-3">
+          <Button 
+            onClick={() => {
+              setSelectedReceipt(null);
+              setCurrentPayment(null);
+              setIsFormOpen(true);
+            }} 
+            className="btn-primary"
+          >
+            <i className="fas fa-plus mr-2"></i> เพิ่มการชำระเงิน
+          </Button>
+          <Button 
+            onClick={() => setIsReceiptOpen(true)} 
+            className="btn-secondary"
+          >
+            <i className="fas fa-search mr-2"></i> ค้นหาการรับข้าว
+          </Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div>Loading...</div>
+      ) : error ? (
+        <div className="text-red-500">Error: {error}</div>
+      ) : (
+        <PaymentTable 
+          payments={payments}
+          onEdit={(payment) => {
+            setCurrentPayment(payment);
+            setIsFormOpen(true);
+          }}
+          onPrint={(payment) => {
+            // Handle print receipt
+            window.print();
+          }}
+        />
+      )}
+
+      <Modal
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        title={currentPayment ? 'แก้ไขการชำระเงิน' : 'เพิ่มการชำระเงินใหม่'}
+        size="lg"
+      >
+        <PaymentForm 
+          initialData={currentPayment}
+          receiptData={selectedReceipt}
+          onSubmit={handleSubmit}
+          onCancel={() => setIsFormOpen(false)}
+        />
+      </Modal>
+
+      <Modal
+        isOpen={isReceiptOpen}
+        onClose={() => setIsReceiptOpen(false)}
+        title="เลือกการรับข้าวเพื่อชำระเงิน"
+        size="xl"
+      >
+        <ReceiptModal 
+          receipts={receipts}
+          onSelect={handleCreateForReceipt}
+          onClose={() => setIsReceiptOpen(false)}
+        />
+      </Modal>
+    </div>
+  );
+};
+
+export default PaymentsPage;

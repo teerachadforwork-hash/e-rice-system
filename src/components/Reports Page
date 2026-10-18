@@ -1,0 +1,125 @@
+import React, { useState } from 'react';
+import ReportGenerator from '../../components/reports/ReportGenerator';
+import ReportTypeSelector from '../../components/reports/ReportTypeSelector';
+import DateRangePicker from '../../components/reports/DateRangePicker';
+import ReportPreview from '../../components/reports/ReportPreview';
+import Button from '../../components/common/Button';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import RiceReceiptReport from '../../components/reports/templates/RiceReceiptReport';
+
+const ReportsPage = () => {
+  const [reportType, setReportType] = useState('receipt');
+  const [dateRange, setDateRange] = useState({
+    startDate: new Date(),
+    endDate: new Date(),
+  });
+  const [reportData, setReportData] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const reportTypes = [
+    { value: 'receipt', label: 'รายงานการรับข้าว' },
+    { value: 'quality', label: 'รายงานคุณภาพข้าว' },
+    { value: 'storage', label: 'รายงานคลังข้าว' },
+    { value: 'payment', label: 'รายงานการชำระเงิน' },
+  ];
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      // Simulate API call
+      const data = await generateReportData(reportType, dateRange);
+      setReportData(data);
+    } catch (err) {
+      console.error('Error generating report:', err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Mock function to generate report data
+  const generateReportData = async (type, range) => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        const mockData = {
+          title: reportTypes.find(r => r.value === type).label,
+          startDate: range.startDate,
+          endDate: range.endDate,
+          generatedAt: new Date(),
+          data: Array(10).fill(0).map((_, i) => ({
+            id: i + 1,
+            date: new Date(range.startDate.getTime() + (i * 86400000)),
+            value: Math.floor(Math.random() * 1000),
+            status: ['completed', 'pending', 'rejected'][Math.floor(Math.random() * 3)],
+          }))
+        };
+        resolve(mockData);
+      }, 1000);
+    });
+  };
+
+  return (
+    <div className="p-6 fade-in">
+      <h2 className="text-2xl font-bold text-primary-brown mb-6">ระบบรายงาน</h2>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="lg:col-span-1">
+          <div className="card p-4">
+            <h3 className="font-semibold mb-4">ตั้งค่ารายงาน</h3>
+            <ReportTypeSelector 
+              types={reportTypes}
+              selectedType={reportType}
+              onChange={setReportType}
+            />
+            <DateRangePicker 
+              range={dateRange}
+              onChange={setDateRange}
+            />
+            <Button 
+              onClick={handleGenerate}
+              className="btn-primary w-full mt-4"
+              disabled={isGenerating}
+            >
+              {isGenerating ? 'กำลังสร้างรายงาน...' : 'สร้างรายงาน'}
+            </Button>
+          </div>
+        </div>
+        
+        <div className="lg:col-span-2">
+          {reportData ? (
+            <div className="space-y-4">
+              <div className="flex justify-end space-x-3">
+                <PDFDownloadLink 
+                  document={<RiceReceiptReport data={reportData} />}
+                  fileName={`${reportData.title}_${new Date().toISOString()}.pdf`}
+                >
+                  {({ loading }) => (
+                    <Button className="btn-secondary">
+                      {loading ? 'กำลังเตรียม PDF...' : 'ดาวน์โหลด PDF'}
+                    </Button>
+                  )}
+                </PDFDownloadLink>
+                <Button className="btn-primary">
+                  <i className="fas fa-file-excel mr-2"></i> ดาวน์โหลด Excel
+                </Button>
+                <Button className="btn-primary">
+                  <i className="fas fa-print mr-2"></i> พิมพ์รายงาน
+                </Button>
+              </div>
+              <ReportPreview data={reportData} />
+            </div>
+          ) : (
+            <div className="card p-8 text-center text-gray-500">
+              {isGenerating ? (
+                <div>กำลังสร้างรายงาน...</div>
+              ) : (
+                <div>เลือกประเภทรายงานและช่วงวันที่เพื่อสร้างรายงาน</div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ReportsPage;

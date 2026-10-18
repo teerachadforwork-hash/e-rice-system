@@ -1,0 +1,111 @@
+import React, { useState } from 'react';
+import { useQualityChecks } from '../../services/QualityService';
+import QualityCheckTable from '../../components/quality/QualityCheckTable';
+import QualityCheckForm from '../../components/quality/QualityCheckForm';
+import AICamera from '../../components/quality/AICamera';
+import Modal from '../../components/common/Modal';
+import Button from '../../components/common/Button';
+import { toast } from 'react-hot-toast';
+
+const QualityCheckPage = () => {
+  const { qualityChecks, loading, error, createQualityCheck, updateQualityCheck } = useQualityChecks();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [currentCheck, setCurrentCheck] = useState(null);
+
+  const handleSubmit = async (checkData) => {
+    try {
+      if (currentCheck) {
+        await updateQualityCheck(currentCheck.checkId, checkData);
+        toast.success('อัพเดทผลการตรวจเรียบร้อยแล้ว');
+      } else {
+        await createQualityCheck(checkData);
+        toast.success('บันทึกผลการตรวจเรียบร้อยแล้ว');
+      }
+      setIsFormOpen(false);
+    } catch (err) {
+      toast.error('เกิดข้อผิดพลาด: ' + err.message);
+    }
+  };
+
+  const handleAIDetection = (results) => {
+    // Process AI results and populate form
+    setCurrentCheck({
+      ...currentCheck,
+      parameters: results.parameters,
+      grade: results.grade,
+      price: results.price
+    });
+    setIsCameraOpen(false);
+  };
+
+  return (
+    <div className="p-6 fade-in">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-primary-brown">ระบบตรวจสอบคุณภาพข้าว</h2>
+        <div className="space-x-3">
+          <Button 
+            onClick={() => setIsCameraOpen(true)} 
+            className="btn-secondary"
+          >
+            <i className="fas fa-camera mr-2"></i> ตรวจสอบด้วย AI
+          </Button>
+          <Button 
+            onClick={() => {
+              setCurrentCheck(null);
+              setIsFormOpen(true);
+            }} 
+            className="btn-primary"
+          >
+            <i className="fas fa-plus mr-2"></i> เพิ่มการตรวจคุณภาพ
+          </Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div>Loading...</div>
+      ) : error ? (
+        <div className="text-red-500">Error: {error}</div>
+      ) : (
+        <QualityCheckTable 
+          checks={qualityChecks}
+          onEdit={(check) => {
+            setCurrentCheck(check);
+            setIsFormOpen(true);
+          }}
+        />
+      )}
+
+      <Modal
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        title={currentCheck ? 'แก้ไขผลการตรวจ' : 'เพิ่มผลการตรวจใหม่'}
+        size="xl"
+      >
+        <QualityCheckForm 
+          initialData={currentCheck}
+          onSubmit={handleSubmit}
+          onCancel={() => setIsFormOpen(false)}
+          onOpenCamera={() => {
+            setIsFormOpen(false);
+            setIsCameraOpen(true);
+          }}
+        />
+      </Modal>
+
+      <Modal
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        title="ตรวจสอบคุณภาพข้าวด้วย AI"
+        size="2xl"
+      >
+        <AICamera 
+          onDetect={handleAIDetection}
+          onClose={() => setIsCameraOpen(false)}
+        />
+      </Modal>
+    </div>
+  );
+};
+
+export default QualityCheckPage;

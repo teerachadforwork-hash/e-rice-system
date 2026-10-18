@@ -1,0 +1,70 @@
+import React from 'react';
+import { useStorages, useStorageRecords } from '../../services/StorageService';
+import StorageTable from '../../components/storage/StorageTable';
+import StorageStatus from '../../components/storage/StorageStatus';
+import StorageRecordForm from '../../components/storage/StorageRecordForm';
+import Modal from '../../components/common/Modal';
+import Button from '../../components/common/Button';
+import { toast } from 'react-hot-toast';
+
+const StoragePage = () => {
+  const { storages, loading: storageLoading, error: storageError } = useStorages();
+  const { records, loading: recordLoading, error: recordError, createRecord } = useStorageRecords();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedStorage, setSelectedStorage] = useState(null);
+
+  const handleCreateRecord = async (recordData) => {
+    try {
+      await createRecord(recordData);
+      toast.success('บันทึกการจัดเก็บเรียบร้อยแล้ว');
+      setIsFormOpen(false);
+    } catch (err) {
+      toast.error('เกิดข้อผิดพลาด: ' + err.message);
+    }
+  };
+
+  const handleSelectStorage = (storage) => {
+    setSelectedStorage(storage);
+    setIsFormOpen(true);
+  };
+
+  return (
+    <div className="p-6 fade-in">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-primary-brown">ระบบจัดการคลังข้าว</h2>
+      </div>
+
+      <StorageStatus storages={storages} />
+
+      <div className="mt-8">
+        <h3 className="text-xl font-semibold mb-4">สถานะคลังข้าว</h3>
+        {storageLoading ? (
+          <div>Loading storages...</div>
+        ) : storageError ? (
+          <div className="text-red-500">Error: {storageError}</div>
+        ) : (
+          <StorageTable 
+            storages={storages}
+            records={records}
+            onSelect={handleSelectStorage}
+          />
+        )}
+      </div>
+
+      <Modal
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        title={`จัดเก็บข้าวใน ${selectedStorage?.name || 'คลัง'}`}
+        size="lg"
+      >
+        <StorageRecordForm 
+          storage={selectedStorage}
+          onSubmit={handleCreateRecord}
+          onCancel={() => setIsFormOpen(false)}
+        />
+      </Modal>
+    </div>
+  );
+};
+
+export default StoragePage;

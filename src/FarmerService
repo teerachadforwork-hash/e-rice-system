@@ -1,0 +1,56 @@
+import { useState, useEffect } from 'react';
+import api from '../utils/api';
+
+const useFarmers = () => {
+  const [farmers, setFarmers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchFarmers = async () => {
+      try {
+        const response = await api.get('/farmers');
+        setFarmers(response.data);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    fetchFarmers();
+  }, []);
+
+  const addFarmer = async (farmerData) => {
+    try {
+      const response = await api.post('/farmers', farmerData);
+      setFarmers([...farmers, response.data]);
+      return response.data;
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const updateFarmer = async (id, farmerData) => {
+    try {
+      const response = await api.put(`/farmers/${id}`, farmerData);
+      setFarmers(farmers.map(f => f.farmerId === id ? response.data : f));
+      return response.data;
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const deleteFarmer = async (id) => {
+    try {
+      await api.delete(`/farmers/${id}`);
+      setFarmers(farmers.filter(f => f.farmerId !== id));
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  return { farmers, loading, error, addFarmer, updateFarmer, deleteFarmer };
+};
+
+export default useFarmers;
